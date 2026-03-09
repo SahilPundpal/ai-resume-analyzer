@@ -3,6 +3,7 @@ import { useState } from "react";
 
 function Home() {
   const [file, setFile] = useState(null);
+  const [analysis, setAnalysis] = useState("");
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
@@ -31,6 +32,7 @@ function Home() {
     );
 
     alert("Resume uploaded successfully!");
+    setAnalysis(response.data.analysis);
     console.log(response.data);
 
   } catch (error) {
@@ -73,6 +75,18 @@ function Home() {
         >
           Analyze Resume
         </button>
+
+        {analysis && (
+          <div className="mt-6 bg-gray-800 p-6 rounded-xl w-[500px] border border-gray-700">
+            <h2 className="text-xl font-semibold mb-3 text-blue-400">
+              AI Resume Analysis
+            </h2>
+
+            <pre className="text-gray-300 whitespace-pre-wrap text-sm">
+              {analysis}
+            </pre>
+          </div>
+        )}
 
       </div>
 

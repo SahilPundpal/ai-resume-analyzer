@@ -3,7 +3,11 @@ const cors = require("cors");
 const multer = require("multer");
 const fs = require("fs");
 const pdfParse = require("pdf-parse");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+require("dotenv").config();
+console.log("API Key loaded:", process.env.GEMINI_API_KEY ? "YES" : "NO");
 
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const app = express();
 
 app.use(cors());
@@ -54,13 +58,46 @@ app.post("/upload", upload.single("resume"), async (req, res) => {
     const pdfData = await pdfParse(dataBuffer);
 
     const resumeText = pdfData.text || "";
+const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+      const prompt = `
+      You are an expert resume reviewer.
+
+      Analyze the following resume and provide:
+
+      1. Resume Score out of 100
+      2. Key skills detected
+      3. Strengths of the resume
+      4. Suggestions for improvement
+
+      Resume:
+      ${resumeText.slice(0, 3000)}
+      `;
+
+    let result;
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        result = await model.generateContent(prompt);
+        break;
+      } catch (err) {
+        if (err.status === 429 && retries > 1) {
+          console.log("Rate limited, waiting 45 seconds...");
+          await new Promise(r => setTimeout(r, 45000));
+          retries--;
+        } else {
+          throw err;
+        }
+      }
+    }
+    const aiResponse = result.response.text();
 
     console.log("Resume Text Extracted:");
     console.log(resumeText.substring(0, 500));
 
     res.json({
-      message: "Resume uploaded and parsed successfully",
-      text: resumeText
+      message: "Resume analyzed successfully",
+      analysis: aiResponse
     });
 
   } catch (error) {
