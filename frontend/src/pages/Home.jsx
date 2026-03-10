@@ -3,7 +3,7 @@ import { useState } from "react";
 
 function Home() {
   const [file, setFile] = useState(null);
-  const [analysis, setAnalysis] = useState("");
+  const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const handleFileChange = (e) => {
@@ -37,7 +37,13 @@ function Home() {
     );
 
     alert("Resume uploaded successfully!");
-    setAnalysis(response.data.analysis);
+    try {
+      const parsed = JSON.parse(response.data.analysis);
+      setAnalysis(parsed);
+    } catch (err) {
+      console.error("JSON parse error:", err);
+      setAnalysis({ score: "-", skills: [], strengths: [], improvements: [] });
+    }
     console.log(response.data);
 
   } catch (error) {
@@ -62,7 +68,7 @@ function Home() {
         Upload your resume and get AI insights
       </p>
 
-      <div className="bg-gray-800/80 backdrop-blur-md p-10 rounded-2xl shadow-xl border border-gray-700 w-[400px]">
+      <div className="bg-gray-800/80 backdrop-blur-md p-10 rounded-2xl shadow-xl border border-gray-700 w-full">
 
         <input
           type="file"
@@ -85,14 +91,33 @@ function Home() {
         </button>
 
         {analysis && (
-          <div className="mt-6 bg-gray-800 p-6 rounded-xl w-[500px] border border-gray-700">
+          <div className="mt-6 bg-gray-800 p-6 rounded-xl w-full border border-gray-700">
             <h2 className="text-xl font-semibold mb-3 text-blue-400">
               AI Resume Analysis
             </h2>
 
-            <pre className="text-gray-300 whitespace-pre-wrap text-sm">
-              {analysis}
-            </pre>
+            <p className="mb-2"><b>Score:</b> {analysis.score}/100</p>
+
+            <p className="mt-3 font-semibold text-green-400">Skills:</p>
+            <ul className="list-disc ml-6">
+              {analysis.skills?.map((skill, i) => (
+                <li key={i}>{skill}</li>
+              ))}
+            </ul>
+
+            <p className="mt-3 font-semibold text-blue-400">Strengths:</p>
+            <ul className="list-disc ml-6">
+              {analysis.strengths?.map((s, i) => (
+                <li key={i}>{s}</li>
+              ))}
+            </ul>
+
+            <p className="mt-3 font-semibold text-red-400">Improvements:</p>
+            <ul className="list-disc ml-6">
+              {analysis.improvements?.map((imp, i) => (
+                <li key={i}>{imp}</li>
+              ))}
+            </ul>
           </div>
         )}
 

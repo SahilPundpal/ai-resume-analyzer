@@ -83,25 +83,57 @@ app.post("/upload", uploadLimiter, upload.single("resume"), async (req, res) => 
       });
     }
 
-    const prompt = `You are an expert resume reviewer.
+    const prompt = `
+    You are an expert resume reviewer and career advisor.
 
-Analyze the following resume and provide:
+    Score the resume out of 100 using this scale:
+    - 90-100: Exceptional resume with strong experience, clear formatting, quantified achievements
+    - 70-89: Good resume with relevant skills and projects, minor improvements needed
+    - 50-69: Average resume, needs more detail or better formatting
+    - 30-49: Below average, missing key sections or poorly structured
+    - 0-29: Very incomplete or poorly written resume
 
-1. Resume Score out of 100
-2. Key skills detected
-3. Strengths of the resume
-4. Suggestions for improvement
+    Most resumes from students/freshers with projects and skills should score between 55-80.
 
-Resume:
-${resumeText.slice(0, 3000)}`;
+    Analyze the resume and return ONLY valid JSON in this format:
+
+    {
+      "score": number,
+      "skills": ["skill1", "skill2", ...],
+      "strengths": ["strength1", "strength2", ...],
+      "improvements": ["improvement1", "improvement2", ...]
+    }
+
+    Provide at least 3 items in each array.
+
+    Resume:
+    ${resumeText.slice(0, 5000)}
+    `;
 
     console.log("Calling Groq API...");
     const chatCompletion = await groq.chat.completions.create({
-      messages: [{ role: "user", content: prompt }],
+      messages: [
+        { role: "system", content: "You are an expert resume reviewer. Always respond with ONLY valid JSON, no markdown, no code blocks, no extra text." },
+        { role: "user", content: prompt }
+      ],
       model: "llama-3.3-70b-versatile",
+      response_format: { type: "json_object" },
     });
 
-    const aiResponse = chatCompletion.choices[0]?.message?.content || "No analysis generated.";
+    let aiResponse = chatCompletion.choices[0]?.message?.content || "{}";
+    console.log("Groq API raw response:", aiResponse.substring(0, 200));
+
+    // Clean markdown code blocks if present
+    aiResponse = aiResponse.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+
+    // Validate it's proper JSON
+    try {
+      JSON.parse(aiResponse);
+    } catch {
+      console.error("Invalid JSON from Groq, wrapping raw response");
+      aiResponse = JSON.stringify({ score: 0, skills: [], strengths: [], improvements: ["Error parsing AI response. Please try again."] });
+    }
+
     console.log("Groq API response received.");
 
     // Store in cache
