@@ -2,17 +2,30 @@ const express = require("express");
 const cors = require("cors");
 const multer = require("multer");
 const fs = require("fs");
+const crypto = require("crypto");
 const pdfParse = require("pdf-parse");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const Groq = require("groq-sdk");
+const rateLimit = require("express-rate-limit");
 require("dotenv").config();
-console.log("API Key loaded:", process.env.GEMINI_API_KEY ? "YES" : "NO");
+console.log("API Key loaded:", process.env.GROQ_API_KEY ? "YES" : "NO");
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const app = express();
+
+// In-memory cache: hash -> { analysis, timestamp }
+const analysisCache = new Map();
+const CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Rate limit: max 5 uploads per minute per IP
+const uploadLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  message: { message: "Too many requests. Please wait a minute before trying again." }
+});
 
 app.get("/", (req, res) => {
   res.send("AI Resume Analyzer Backend Running 🚀");
@@ -42,7 +55,7 @@ const upload = multer({
   fileFilter
 });
 
-app.post("/upload", upload.single("resume"), async (req, res) => {
+app.post("/upload", uploadLimiter, upload.single("resume"), async (req, res) => {
   try {
 
     if (!req.file) {
@@ -58,39 +71,41 @@ app.post("/upload", upload.single("resume"), async (req, res) => {
     const pdfData = await pdfParse(dataBuffer);
 
     const resumeText = pdfData.text || "";
-const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-      const prompt = `
-      You are an expert resume reviewer.
-
-      Analyze the following resume and provide:
-
-      1. Resume Score out of 100
-      2. Key skills detected
-      3. Strengths of the resume
-      4. Suggestions for improvement
-
-      Resume:
-      ${resumeText.slice(0, 3000)}
-      `;
-
-    let result;
-    let retries = 3;
-    while (retries > 0) {
-      try {
-        result = await model.generateContent(prompt);
-        break;
-      } catch (err) {
-        if (err.status === 429 && retries > 1) {
-          console.log("Rate limited, waiting 45 seconds...");
-          await new Promise(r => setTimeout(r, 45000));
-          retries--;
-        } else {
-          throw err;
-        }
-      }
+    // Cache: hash the resume text to check for duplicates
+    const resumeHash = crypto.createHash("sha256").update(resumeText).digest("hex");
+    const cached = analysisCache.get(resumeHash);
+    if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
+      console.log("Cache hit for resume:", req.file.originalname);
+      return res.json({
+        message: "Resume analyzed successfully (cached)",
+        analysis: cached.analysis
+      });
     }
-    const aiResponse = result.response.text();
+
+    const prompt = `You are an expert resume reviewer.
+
+Analyze the following resume and provide:
+
+1. Resume Score out of 100
+2. Key skills detected
+3. Strengths of the resume
+4. Suggestions for improvement
+
+Resume:
+${resumeText.slice(0, 3000)}`;
+
+    console.log("Calling Groq API...");
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [{ role: "user", content: prompt }],
+      model: "llama-3.3-70b-versatile",
+    });
+
+    const aiResponse = chatCompletion.choices[0]?.message?.content || "No analysis generated.";
+    console.log("Groq API response received.");
+
+    // Store in cache
+    analysisCache.set(resumeHash, { analysis: aiResponse, timestamp: Date.now() });
 
     console.log("Resume Text Extracted:");
     console.log(resumeText.substring(0, 500));
@@ -136,5 +151,6 @@ app.use((err, req, res, next) => {
 const PORT = 5000;
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`\n✅ Server running on http://localhost:${PORT}`);
+  console.log(`🟢 Waiting for resume uploads...\n`);
 });

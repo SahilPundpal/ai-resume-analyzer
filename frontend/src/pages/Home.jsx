@@ -4,6 +4,7 @@ import { useState } from "react";
 function Home() {
   const [file, setFile] = useState(null);
   const [analysis, setAnalysis] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
@@ -16,6 +17,9 @@ function Home() {
     return;
   }
 
+  if (loading) return;
+  setLoading(true);
+
   const formData = new FormData();
   formData.append("resume", file);
 
@@ -27,7 +31,8 @@ function Home() {
       {
         headers: {
           "Content-Type": "multipart/form-data"
-        }
+        },
+        timeout: 120000
       }
     );
 
@@ -38,8 +43,10 @@ function Home() {
   } catch (error) {
 
     console.error(error.response?.data || error);
-    alert("Upload failed");
+    alert(error.response?.data?.message || "Upload failed");
 
+  } finally {
+    setLoading(false);
   }
 
 };
@@ -71,9 +78,10 @@ function Home() {
 
         <button
           onClick={handleUpload}
-          className="w-full bg-blue-600 hover:bg-blue-700 transition duration-300 px-4 py-3 rounded-lg font-semibold"
+          disabled={loading}
+          className={`w-full transition duration-300 px-4 py-3 rounded-lg font-semibold ${loading ? 'bg-blue-800 cursor-not-allowed opacity-70' : 'bg-blue-600 hover:bg-blue-700'}`}
         >
-          Analyze Resume
+          {loading ? 'Analyzing...' : 'Analyze Resume'}
         </button>
 
         {analysis && (
