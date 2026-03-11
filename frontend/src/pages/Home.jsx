@@ -5,7 +5,7 @@ function Home() {
   const [file, setFile] = useState(null);
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
-
+  const [jobDescription, setJobDescription] = useState("");
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
   };
@@ -22,6 +22,7 @@ function Home() {
 
   const formData = new FormData();
   formData.append("resume", file);
+  formData.append("jobDescription", jobDescription);
 
   try {
 
@@ -39,10 +40,11 @@ function Home() {
     alert("Resume uploaded successfully!");
     try {
       const parsed = JSON.parse(response.data.analysis);
+      console.log(parsed);
       setAnalysis(parsed);
     } catch (err) {
       console.error("JSON parse error:", err);
-      setAnalysis({ score: "-", skills: [], strengths: [], improvements: [] });
+      setAnalysis({ score: "-", skills: [], missing_skills: [], strengths: [], improvements: [] });
     }
     console.log(response.data);
 
@@ -76,6 +78,13 @@ function Home() {
           onChange={handleFileChange}
           className="mb-6 text-white"
         />
+        <textarea
+          placeholder="Paste job description here (optional)"
+          value={jobDescription}
+          onChange={(e) => setJobDescription(e.target.value)}
+          className="w-full p-3 mb-6 bg-gray-900 border border-gray-700 rounded-lg text-white"
+          rows="4"
+        />
         {file && (
           <p className="text-green-400 text-sm mb-4">
             Selected: {file.name}
@@ -96,11 +105,54 @@ function Home() {
               AI Resume Analysis
             </h2>
 
-            <p className="mb-2"><b>Score:</b> {analysis.score}/100</p>
+            {analysis.match_score && (
+              <div className="mb-4">
+                <p className="font-semibold text-purple-400 mb-2">Job Match Score</p>
+                <div className="w-full bg-gray-700 rounded-full h-4">
+                  <div
+                    className="bg-purple-500 h-4 rounded-full"
+                    style={{ width: `${analysis.match_score}%` }}
+                  ></div>
+                </div>
+                <p className="mt-2 text-sm text-gray-300">{analysis.match_score}% match</p>
+              </div>
+            )}
+            <div className="mb-4">
+              <p className="font-semibold mb-2">Resume Score</p>
+
+                <div className="w-full bg-gray-700 rounded-full h-4">
+                  <div
+                    className={`h-4 rounded-full transition-all duration-500 ${
+                      analysis.score > 80
+                        ? "bg-green-500"
+                        : analysis.score > 60
+                        ? "bg-yellow-500"
+                        : "bg-red-500"
+                    }`}
+                    style={{ width: `${analysis.score}%` }}
+                  ></div>
+                </div>
+
+              <p className="mt-2 text-sm text-gray-300">{analysis.score}/100</p>
+            </div>
 
             <p className="mt-3 font-semibold text-green-400">Skills:</p>
             <ul className="list-disc ml-6">
               {analysis.skills?.map((skill, i) => (
+                <li key={i}>{skill}</li>
+              ))}
+            </ul>
+
+            <p className="mt-3 font-semibold text-purple-400">Matched Skills:</p>
+            <ul className="list-disc ml-6">
+              {analysis.matched_skills?.map((skill, i) => (
+                <li key={i}>{skill}</li>
+              ))}
+            </ul>
+
+            <p className="mt-3 font-semibold text-yellow-400">Missing Skills:</p>
+            <ul className="list-disc ml-6">
+              {analysis.missing_skills?.map((skill, i) => (
                 <li key={i}>{skill}</li>
               ))}
             </ul>

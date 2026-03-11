@@ -71,6 +71,7 @@ app.post("/upload", uploadLimiter, upload.single("resume"), async (req, res) => 
     const pdfData = await pdfParse(dataBuffer);
 
     const resumeText = pdfData.text || "";
+    const jobDescription = req.body.jobDescription || "";
 
     // Cache: hash the resume text to check for duplicates
     const resumeHash = crypto.createHash("sha256").update(resumeText).digest("hex");
@@ -84,30 +85,40 @@ app.post("/upload", uploadLimiter, upload.single("resume"), async (req, res) => 
     }
 
     const prompt = `
-    You are an expert resume reviewer and career advisor.
-
-    Score the resume out of 100 using this scale:
-    - 90-100: Exceptional resume with strong experience, clear formatting, quantified achievements
-    - 70-89: Good resume with relevant skills and projects, minor improvements needed
-    - 50-69: Average resume, needs more detail or better formatting
-    - 30-49: Below average, missing key sections or poorly structured
-    - 0-29: Very incomplete or poorly written resume
-
-    Most resumes from students/freshers with projects and skills should score between 55-80.
-
-    Analyze the resume and return ONLY valid JSON in this format:
-
-    {
-      "score": number,
-      "skills": ["skill1", "skill2", ...],
-      "strengths": ["strength1", "strength2", ...],
-      "improvements": ["improvement1", "improvement2", ...]
-    }
-
-    Provide at least 3 items in each array.
+    You are an ATS resume analyzer.
 
     Resume:
-    ${resumeText.slice(0, 5000)}
+    ${resumeText.slice(0,5000)}
+
+    Job Description:
+    ${jobDescription}
+
+    Score the resume quality out of 100 based on:
+
+    - clarity of projects
+    - technical skills
+    - structure and formatting
+    - quantified achievements
+    - relevance to software engineering roles
+
+    Most student resumes should score between 60 and 85.
+
+    Return ONLY JSON in this format:
+
+    {
+    "score": number,
+    "match_score": number,
+    "skills": [],
+    "matched_skills": [],
+    "missing_skills": [],
+    "strengths": [],
+    "improvements": []
+    }
+
+    Rules:
+    -match_score = percentage of resume skills matching job description
+    -matched_skills = skills that appear in BOTH the resume and the job description
+    -missing_skills = skills mentioned in the job description but NOT found in the resume
     `;
 
     console.log("Calling Groq API...");
@@ -131,7 +142,7 @@ app.post("/upload", uploadLimiter, upload.single("resume"), async (req, res) => 
       JSON.parse(aiResponse);
     } catch {
       console.error("Invalid JSON from Groq, wrapping raw response");
-      aiResponse = JSON.stringify({ score: 0, skills: [], strengths: [], improvements: ["Error parsing AI response. Please try again."] });
+      aiResponse = JSON.stringify({ score: 0, skills: [], missing_skills: [], strengths: [], improvements: ["Error parsing AI response. Please try again."] });
     }
 
     console.log("Groq API response received.");
