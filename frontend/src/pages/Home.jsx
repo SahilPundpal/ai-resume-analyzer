@@ -27,7 +27,7 @@ function Home() {
   try {
 
     const response = await axios.post(
-      "http://localhost:5000/upload",
+      "https://ai-resume-analyzer-backend-7o4r.onrender.com/upload",
       formData,
       {
         headers: {
