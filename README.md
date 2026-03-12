@@ -57,10 +57,10 @@ https://ai-resume-analyzer-backend-7o4r.onrender.com
 - **Vercel** (Frontend)
 - **Render** (Backend)
 
+  
 ---
-
 # Project Architecture
-
+```
 Frontend (React + Tailwind)
 ↓
 Upload Resume
@@ -74,12 +74,12 @@ pdf-parse extracts resume text
 Groq LLM analyzes resume
 ↓
 Frontend displays result
+```
 
 
 ---
-
 # Project Structure
-
+```
 ai-resume-analyzer
 │
 ├── frontend
@@ -96,3 +96,4 @@ ai-resume-analyzer
 │ └── .env
 │
 └── README.md
+```
