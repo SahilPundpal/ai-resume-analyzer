@@ -1,6 +1,7 @@
 # AI Resume Analyzer 🚀
 
-An **AI-powered Resume Analyzer** that evaluates resumes against job descriptions using **LLMs**.  
+An **AI-powered Resume Analyzer** that evaluates resumes against job descriptions using **LLMs**.
+
 Users can upload a resume (PDF) and optionally paste a job description to receive:
 
 - Resume Score
@@ -12,50 +13,53 @@ The system uses **Groq LLM** for intelligent resume evaluation.
 
 ---
 
-## Live Demo
+# Live Demo
 
-Frontend (Vercel)  
+### Frontend (Vercel)
 https://ai-resume-analyzer-wine-mu.vercel.app
 
-Backend API (Render)  
+### Backend API (Render)
 https://ai-resume-analyzer-backend-7o4r.onrender.com
 
 ---
 
-## Features
+# Features
 
 - Upload resume in **PDF format**
 - Extract resume text using **pdf-parse**
 - AI powered resume scoring
-- **Job description matching**
-- **Skill extraction**
+- Job description matching
+- Skill extraction
 - Clean UI built with **React + Tailwind**
 - Deployed using **Vercel + Render**
 
 ---
 
-## Tech Stack
+# Tech Stack
 
-### Frontend
+## Frontend
 - React
 - TailwindCSS
 - Axios
 - Vite
 
-### Backend
+## Backend
 - Node.js
 - Express
 - Multer
 - pdf-parse
 - Groq API (LLM)
 
-### Deployment
-- Vercel (Frontend)
-- Render (Backend)
+---
+
+# Deployment
+
+- **Vercel** (Frontend)
+- **Render** (Backend)
 
 ---
 
-## Project Architecture
+# Project Architecture
 
 Frontend (React + Tailwind)
 ↓
@@ -72,17 +76,23 @@ Groq LLM analyzes resume
 Frontend displays result
 
 
+---
 
-## Tech Stack
+# Project Structure
 
-Frontend
-- React
-- TailwindCSS
-- Axios
-
-Backend
-- Node.js
-- Express
-- Multer
-- pdf-parse
-- Groq API
+ai-resume-analyzer
+│
+├── frontend
+│ ├── src
+│ │ ├── Home.jsx
+│ │ ├── App.jsx
+│ │ └── main.jsx
+│ └── package.json
+│
+├── backend
+│ ├── uploads
+│ ├── server.js
+│ ├── package.json
+│ └── .env
+│
+└── README.md
