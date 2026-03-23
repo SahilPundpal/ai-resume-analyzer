@@ -16,7 +16,7 @@ The system uses **Groq LLM** for intelligent resume evaluation.
 # Live Demo
 
 ### Frontend (Vercel)
-https://ai-resume-analyzer-wine-mu.vercel.app
+[https://ai-resume-analyzer-wine-mu.vercel.app](https://ai-resume-analyzer-7yzu.vercel.app/)
 
 ### Backend API (Render)
 https://ai-resume-analyzer-backend-7o4r.onrender.com
