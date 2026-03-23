@@ -3,6 +3,8 @@ const cors = require("cors");
 const multer = require("multer");
 const fs = require("fs");
 const crypto = require("crypto");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const pdfParse = require("pdf-parse");
 const Groq = require("groq-sdk");
 const rateLimit = require("express-rate-limit");
@@ -11,6 +13,10 @@ console.log("API Key loaded:", process.env.GROQ_API_KEY ? "YES" : "NO");
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const app = express();
+const JWT_SECRET = process.env.JWT_SECRET || "change-this-secret-in-production";
+
+// In-memory users store for demo purposes (email -> user)
+const users = new Map();
 
 // In-memory cache: hash -> { analysis, timestamp }
 const analysisCache = new Map();
@@ -27,8 +33,123 @@ const uploadLimiter = rateLimit({
   message: { message: "Too many requests. Please wait a minute before trying again." }
 });
 
+// Rate limit: max 20 auth requests per 15 minutes per IP
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { message: "Too many auth attempts. Please try again later." }
+});
+
+const createToken = (user) => {
+  return jwt.sign(
+    {
+      id: user.id,
+      email: user.email
+    },
+    JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+};
+
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers.authorization || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+
+  if (!token) {
+    return res.status(401).json({ message: "Unauthorized. Missing token." });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: "Unauthorized. Invalid token." });
+  }
+};
+
 app.get("/", (req, res) => {
   res.send("AI Resume Analyzer Backend Running 🚀");
+});
+
+app.post("/auth/register", authLimiter, async (req, res) => {
+  try {
+    const email = (req.body.email || "").trim().toLowerCase();
+    const password = req.body.password || "";
+
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required." });
+    }
+
+    if (!email.includes("@")) {
+      return res.status(400).json({ message: "Please provide a valid email." });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters." });
+    }
+
+    if (users.has(email)) {
+      return res.status(409).json({ message: "User already exists. Please log in." });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const user = {
+      id: crypto.randomUUID(),
+      email,
+      passwordHash,
+      createdAt: new Date().toISOString()
+    };
+
+    users.set(email, user);
+
+    const token = createToken(user);
+
+    return res.status(201).json({
+      message: "Account created successfully.",
+      token,
+      user: { id: user.id, email: user.email }
+    });
+  } catch (error) {
+    console.error("Register error:", error);
+    return res.status(500).json({ message: "Failed to register user." });
+  }
+});
+
+app.post("/auth/login", authLimiter, async (req, res) => {
+  try {
+    const email = (req.body.email || "").trim().toLowerCase();
+    const password = req.body.password || "";
+
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required." });
+    }
+
+    const user = users.get(email);
+    if (!user) {
+      return res.status(401).json({ message: "Invalid email or password." });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: "Invalid email or password." });
+    }
+
+    const token = createToken(user);
+
+    return res.json({
+      message: "Logged in successfully.",
+      token,
+      user: { id: user.id, email: user.email }
+    });
+  } catch (error) {
+    console.error("Login error:", error);
+    return res.status(500).json({ message: "Failed to log in." });
+  }
+});
+
+app.get("/auth/me", authenticateToken, (req, res) => {
+  return res.json({ user: { id: req.user.id, email: req.user.email } });
 });
 
 const path = require("path");
@@ -55,7 +176,7 @@ const upload = multer({
   fileFilter
 });
 
-app.post("/upload", uploadLimiter, upload.single("resume"), async (req, res) => {
+app.post("/upload", authenticateToken, uploadLimiter, upload.single("resume"), async (req, res) => {
   try {
 
     if (!req.file) {
