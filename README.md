@@ -1,39 +1,99 @@
 # AI Resume Analyzer 🚀
 
-An AI-powered resume analyzer built using **React, Node.js, Express and PDF parsing**.  
-The application allows users to upload their resume in PDF format and extracts the text for analysis.
+An **AI-powered Resume Analyzer** that evaluates resumes against job descriptions using **LLMs**.
 
-## Features
+Users can upload a resume (PDF) and optionally paste a job description to receive:
 
-- Upload resume (PDF)
-- Backend file handling with Multer
-- Extract resume text using pdf-parse
-- Clean UI built with React + Tailwind
-- Structured backend with Express
+- Resume Score
+- Job Match Score
+- Extracted Skills
+- AI-based Resume Analysis
 
-## Project Architecture
+The system uses **Groq LLM** for intelligent resume evaluation.
 
-Frontend (React + Tailwind)
-        ↓
-Upload Resume
-        ↓
-Backend (Node.js + Express)
-        ↓
-Multer handles file upload
-        ↓
-pdf-parse extracts resume text
+---
 
-## Tech Stack
+# Live Demo
 
-Frontend
+### Frontend (Vercel)
+https://ai-resume-analyzer-wine-mu.vercel.app
+
+### Backend API (Render)
+https://ai-resume-analyzer-backend-7o4r.onrender.com
+
+---
+
+# Features
+
+- Upload resume in **PDF format**
+- Extract resume text using **pdf-parse**
+- AI powered resume scoring
+- Job description matching
+- Skill extraction
+- Clean UI built with **React + Tailwind**
+- Deployed using **Vercel + Render**
+
+---
+
+# Tech Stack
+
+## Frontend
 - React
 - TailwindCSS
 - Axios
+- Vite
 
-Backend
+## Backend
 - Node.js
 - Express
 - Multer
 - pdf-parse
+- Groq API (LLM)
 
-## Project Structure
+---
+
+# Deployment
+
+- **Vercel** (Frontend)
+- **Render** (Backend)
+
+  
+---
+# Project Architecture
+```
+Frontend (React + Tailwind)
+↓
+Upload Resume
+↓
+Backend (Node.js + Express)
+↓
+Multer handles file upload
+↓
+pdf-parse extracts resume text
+↓
+Groq LLM analyzes resume
+↓
+Frontend displays result
+```
+
+
+---
+# Project Structure
+```
+ai-resume-analyzer
+│
+├── frontend
+│ ├── src
+│ │ ├── Home.jsx
+│ │ ├── App.jsx
+│ │ └── main.jsx
+│ └── package.json
+│
+├── backend
+│ ├── uploads
+│ ├── server.js
+│ ├── package.json
+│ └── .env
+│
+└── README.md
+```
